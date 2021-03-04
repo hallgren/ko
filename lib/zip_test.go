@@ -9,7 +9,7 @@ import (
 )
 
 func TestReadArchiveExistingFile(t *testing.T) {
-	middleware := lib.NewArchiveZIPMiddleware("../testdir/tmp.zip")
+	middleware := lib.NewZIPMiddleware("../testdir/tmp.zip")
 
 	ts := httptest.NewServer(middleware(nil))
 	rsp, err := http.Get(ts.URL + "/tmp/file.html")
@@ -22,7 +22,7 @@ func TestReadArchiveExistingFile(t *testing.T) {
 }
 
 func TestReadArchiveNoneExistingFile(t *testing.T) {
-	middleware := lib.NewArchiveZIPMiddleware("../testdir/tmp.zip")
+	middleware := lib.NewZIPMiddleware("../testdir/tmp.zip")
 
 	ts := httptest.NewServer(middleware(nil))
 	rsp, err := http.Get(ts.URL + "/tmp/missing.html")

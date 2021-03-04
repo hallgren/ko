@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-func NewArchiveZIPMiddleware(zipPath string) func(http.Handler) http.Handler {
+func NewZIPMiddleware(zipPath string) func(http.Handler) http.Handler {
 	files := map[string]*zip.File{}
 	z, err := zip.OpenReader(zipPath)
 	if err != nil {
