@@ -2,20 +2,52 @@ package lib
 
 import (
 	"archive/zip"
+	"io/ioutil"
+	"net/http"
 )
 
-// ArchiveRouter can serve content from an archive
-type ArchiveRouter struct {
-	archive   *zip.ReadCloser
-	filepaths map[string]bool
+func NewArchiveZIPMiddleware(zipPath string) func(http.Handler) http.Handler {
+	files := map[string]*zip.File{}
+	z, err := zip.OpenReader(zipPath)
+	if err != nil {
+		panic(err)
+	}
+	for _, file := range z.File {
+		files["/"+file.Name] = file
+	}
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			f, ok := files[r.URL.Path]
+			if !ok {
+				if next != nil {
+					next.ServeHTTP(w, r)
+				} else {
+					http.Error(w, "File not found", http.StatusNotFound)
+					return
+				}
+			}
+			b, err := readAll(f)
+			if err != nil {
+				http.Error(w, "Internal error", http.StatusInternalServerError)
+			}
+			w.Write(b)
+		})
+	}
 }
 
-// NewArchiveRouter creates a router that can serve static content
-func NewArchiveRouter(archivePath string) (*ArchiveRouter, error) {
-	closer, err := zip.OpenReader(archivePath)
+// readAll is a wrapper function for ioutil.ReadAll. It accepts a zip.File as
+// its parameter, opens it, reads its content and returns it as a byte slice.
+func readAll(file *zip.File) ([]byte, error) {
+	fc, err := file.Open()
 	if err != nil {
 		return nil, err
 	}
-	router := ArchiveRouter{archive: closer}
-	return &router, nil
+	defer fc.Close()
+
+	content, err := ioutil.ReadAll(fc)
+	if err != nil {
+		return nil, err
+	}
+
+	return content, nil
 }
