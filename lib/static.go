@@ -5,7 +5,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 )
 
 // NewStaticMiddleware creates a router that:
@@ -23,41 +22,16 @@ func NewStaticMiddleware(root string) func(http.Handler) http.Handler {
 				p = path.Join(p, "index.html")
 			}
 
-			encodings := strings.Split(r.Header.Get("Accept-Encoding"), ",")
-			for _, enc := range encodings {
-				switch strings.Trim(enc, "") {
-				case "gzip":
-					fp := filepath.FromSlash(p + ".gz")
-					info, err := os.Stat(fp)
-					if err != nil {
-						break
-					}
-					f, err := os.Open(fp)
-					if err != nil {
-						http.Error(w, "", http.StatusForbidden)
-						return
-					}
-					w.Header().Add("Content-Encoding", "gzip")
-					http.ServeContent(w, r, p, info.ModTime(), f)
-					return
+			_, err = os.Stat(filepath.FromSlash(p))
+			if err != nil {
+				if next != nil {
+					next.ServeHTTP(w, r)
+				} else {
+					http.Error(w, "File not found", http.StatusNotFound)
 				}
-			}
-
-			fp := filepath.FromSlash(p)
-			if info, err = os.Stat(fp); err == nil {
-				f, err := os.Open(fp)
-				if err != nil {
-					http.Error(w, "", http.StatusForbidden)
-					return
-				}
-				http.ServeContent(w, r, p, info.ModTime(), f)
-				return
-			}
-
-			if next != nil {
-				next.ServeHTTP(w, r)
 			} else {
-				http.Error(w, "File not found", http.StatusNotFound)
+				fs := http.FileServer(http.Dir(root))
+				fs.ServeHTTP(w, r)
 			}
 		})
 	}

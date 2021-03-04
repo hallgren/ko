@@ -17,7 +17,7 @@ func (s CallRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	*s.Called = true
 }
 
-func TestNonExistent(t *testing.T) {
+func TestNoneExistent(t *testing.T) {
 	middleware := lib.NewStaticMiddleware(".")
 
 	ts := httptest.NewServer(middleware(nil))
@@ -39,6 +39,32 @@ func TestExistent(t *testing.T) {
 		log.Fatal(err)
 	}
 	if rsp.StatusCode != 200 {
-		log.Fatal("expected file not found")
+		log.Fatal("expected file to be found")
+	}
+}
+
+func TestIndexExist(t *testing.T) {
+	middleware := lib.NewStaticMiddleware("../testdir")
+
+	ts := httptest.NewServer(middleware(nil))
+	rsp, err := http.Get(ts.URL)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if rsp.StatusCode != 200 {
+		log.Fatal("expected index.html to be found")
+	}
+}
+
+func TestIndexNoneExist(t *testing.T) {
+	middleware := lib.NewStaticMiddleware(".")
+
+	ts := httptest.NewServer(middleware(nil))
+	rsp, err := http.Get(ts.URL)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if rsp.StatusCode != 404 {
+		log.Fatal("expected index.html not to be found")
 	}
 }
